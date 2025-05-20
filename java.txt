@@ -1,0 +1,110 @@
+import java.sql.*;
+import java.util.Scanner;
+
+public class StudentManagementJDBC {
+    static final String URL = "jdbc:mysql://localhost:3306/student_db";
+    static final String USER = "root";
+    static final String PASSWORD = "anas.anas";
+
+    static Scanner sc = new Scanner(System.in);
+
+    public static void main(String[] args) {
+        int choice;
+
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            System.out.println("Driver class loaded successfully!");
+
+            Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
+            System.out.println("Connected to database successfully!");
+
+            do {
+                System.out.println("\n--- Student Management System ---");
+                System.out.println("1. Add Student");
+                System.out.println("2. View Students");
+                System.out.println("3. Search Student by ID");
+                System.out.println("4. Delete Student");
+                System.out.println("5. Exit");
+                System.out.print("Enter choice: ");
+                choice = sc.nextInt();
+
+                switch (choice) {
+                    case 1 -> addStudent(conn);
+                    case 2 -> viewStudents(conn);
+                    case 3 -> searchStudent(conn);
+                    case 4 -> deleteStudent(conn);
+                    case 5 -> System.out.println("Exiting...");
+                    default -> System.out.println("Invalid choice!");
+                }
+            } while (choice != 5);
+
+            conn.close();
+
+        } catch (ClassNotFoundException e) {
+            System.out.println("MySQL JDBC Driver not found: " + e.getMessage());
+        } catch (SQLException e) {
+            System.out.println("Database connection error: " + e.getMessage());
+        }
+    }
+
+    static void addStudent(Connection conn) throws SQLException {
+        System.out.print("Enter ID: ");
+        int id = sc.nextInt();
+        sc.nextLine(); // clear buffer
+        System.out.print("Enter Name: ");
+        String name = sc.nextLine();
+        System.out.print("Enter Age: ");
+        int age = sc.nextInt();
+
+        String sql = "INSERT INTO students (id, name, age) VALUES (?, ?, ?)";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, id);
+            stmt.setString(2, name);
+            stmt.setInt(3, age);
+            int rows = stmt.executeUpdate();
+            System.out.println(rows > 0 ? "Student added." : "Failed to add student.");
+        }
+    }
+
+    static void viewStudents(Connection conn) throws SQLException {
+        String sql = "SELECT * FROM students";
+        try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
+            boolean found = false;
+            while (rs.next()) {
+                found = true;
+                System.out.println("ID: " + rs.getInt("id") +
+                        ", Name: " + rs.getString("name") +
+                        ", Age: " + rs.getInt("age"));
+            }
+            if (!found) System.out.println("No students found.");
+        }
+    }
+
+    static void searchStudent(Connection conn) throws SQLException {
+        System.out.print("Enter ID to search: ");
+        int id = sc.nextInt();
+        String sql = "SELECT * FROM students WHERE id = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, id);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                System.out.println("ID: " + rs.getInt("id") +
+                        ", Name: " + rs.getString("name") +
+                        ", Age: " + rs.getInt("age"));
+            } else {
+                System.out.println("Student not found.");
+            }
+        }
+    }
+
+    static void deleteStudent(Connection conn) throws SQLException {
+        System.out.print("Enter ID to delete: ");
+        int id = sc.nextInt();
+        String sql = "DELETE FROM students WHERE id = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, id);
+            int rows = stmt.executeUpdate();
+            System.out.println(rows > 0 ? "Student deleted." : "Student not found.");
+        }
+    }
+}
